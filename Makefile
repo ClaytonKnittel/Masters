@@ -1,28 +1,40 @@
 
 MAIN=test
 SDIR=src
-CLASSDIR=.class
+
+# directory where compiled .class files will go
+CLASSPATH=.class
+
+# where downloaded extensions go
+DOWNLOAD_DIR=/usr/local/Cellar
+
+# downloaded jars
+JARS := $(DOWNLOAD_DIR)/aspectj/1.9.5/libexec/aspectj/lib/aspectjrt.jar
+JARS :=$(JARS):$(DOWNLOAD_DIR)/aspectj/1.9.5/libexec/aspectj/lib/aspectjweaver.jar
 
 SRC=$(shell find $(SDIR) -type f -name '*.java')
-CLASS=$(patsubst %.java,$(CLASSDIR)/%.class,$(SRC))
+CLASS=$(patsubst %.java,$(CLASSPATH)/%.class,$(SRC))
 
-CC=javac
+CC=ajc
 
-$(shell mkdir -p $(CLASSDIR))
+CFLAGS=
+
+$(shell mkdir -p $(CLASSPATH))
 
 SRC_PWD = $(shell pwd)
 
 
 .PHONY: all
-all: $(CLASS)
+all: source
 
-$(CLASSDIR)/$(SDIR)/%.class: $(SDIR)/%.java
-	$(CC) -d $(CLASSDIR) $<
+source: $(SRC)
+	$(CC) $(CFLAGS) -d $(CLASSPATH) -cp .:$(CLASSPATH):$(JARS) $<
 
 .PHONY: clean
 clean:
-	find $(CLASSDIR) -type f -name '*.class' -delete
+	find $(CLASSPATH) -type f -name '*.class' -delete
+	find $(CLASSPATH) -type d -name '$(CLASSPATH)/*' -delete
 
 .PHONY: run
 run:
-	@java -cp $(CLASSDIR) $(SDIR)/$(MAIN)
+	@java -cp $(CLASSPATH) $(SDIR)/$(MAIN)
