@@ -6,8 +6,6 @@ import org.aspectj.lang.annotation.Before;
 
 import java.lang.annotation.Annotation;
 
-import src.Instruction;
-
 @Aspect
 public abstract class AbstractInstruction {
 
@@ -23,9 +21,7 @@ public abstract class AbstractInstruction {
     public void apply(JoinPoint jp) {
         String arg = (String) (jp.getArgs()[0]);
 
-        System.out.println("arg: " + arg);
-
-        String args[] = arg.split("[\\s]+");
+        String args[] = arg.split("[\\s,]+");
 
         if (args[0].equalsIgnoreCase(name)) {
             apply(args);
