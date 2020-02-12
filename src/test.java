@@ -23,7 +23,7 @@ public class test {
 
         test2 t2 = new test2();
 
-        String l[] = {"a", "b"};
+        String l[] = {"mov a, b", "pop  a"};
 
         for (String arg : l) {
             execute(arg);
