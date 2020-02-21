@@ -1,8 +1,8 @@
-package src;
+package src.instructions;
 
 import org.aspectj.lang.annotation.Aspect;
 
-import src.AbstractInstruction;
+import src.instructions.AbstractInstruction;
 
 @Aspect
 public class MoveInstruction extends AbstractInstruction {
