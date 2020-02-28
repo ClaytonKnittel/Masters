@@ -8,8 +8,9 @@ public class test {
 
     public static void main(String args[]) {
         Processor p = Processor.make_simple();
-
+        p.printState();
         while (p.execute());
+        p.printState();
     }
 }
 
