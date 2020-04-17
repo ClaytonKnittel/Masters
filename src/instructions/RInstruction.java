@@ -27,8 +27,10 @@ import src.processor.*;
 @Aspect
 public abstract class RInstruction implements Instruction {
 
+    // where bits related to which operation this is can be found
     public static final int opcode_mask = 0xfc00707f;
 
+    // 32 registers, x0 - x31, so 32 = 2^5 possible values
     private static final int REGISTER_ENCODING_MASK = 0x1f;
     private static final int RD_OFFSET = 7;
     private static final int RS1_OFFSET = 15;
@@ -80,7 +82,7 @@ public abstract class RInstruction implements Instruction {
     public void apply(JoinPoint jp) {
         Processor p = (Processor) jp.getThis();
         Integer encoding = (Integer) jp.getArgs()[0];
-        System.out.println(encoding);
+        //System.out.println(encoding);
         if (match(encoding)) {
             execute(p, encoding);
         }

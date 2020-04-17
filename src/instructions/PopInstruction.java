@@ -1,8 +1,8 @@
-package src.instruction;
+package src.instructions;
 
 import org.aspectj.lang.annotation.Aspect;
 
-import src.instruction.AbstractInstruction;
+import src.instructions.AbstractInstruction;
 
 @Aspect
 public class PopInstruction extends AbstractInstruction {

@@ -15,7 +15,7 @@ public class Processor {
     public Processor(int mem_size) {
         xregs = new Register[N_REGS];
         for (int i = 0; i < xregs.length; i++) {
-            xregs[i] = new Register(i == 0 ? 0 : 1);
+            xregs[i] = new Register(0);
         }
         pc = new Register();
         pc.set(0);
@@ -24,6 +24,11 @@ public class Processor {
 
     public static Processor make_simple() {
         Processor p = new Processor(3);
+        // lui x2, 0x1
+        p.mem.set(0, 0x00100137);
+        // add x3, x1, x2
+        p.mem.set(1, 0x002081b3);
+        p.mem.set(2, 0x002081b3);
         return p;
     }
 
@@ -44,7 +49,7 @@ public class Processor {
 
     public void printState() {
         for (int i = 0; i < xregs.length; i++) {
-            System.out.println("\tx" + i + ":\t" + xregs[i].get());
+            System.out.printf("\tx%d:\t0x%08x\n", i, xregs[i].get());
         }
         System.out.println("pc:\t" + pc.get());
     }
