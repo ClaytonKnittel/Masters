@@ -20,7 +20,8 @@ public class rv32i implements Instruction {
         Register rs1 = p.getRegisterByIndex(rs1i);
 
         // 12-bit immmediate
-        int imm = (encoding >> 20) & 0x3ff;
+        int imm = (encoding >> 20) & 0xfff;
+        System.out.printf("%x\n", imm);
 
         System.out.println("Imm");
         switch (encoding & 0x7000) {
@@ -40,12 +41,54 @@ public class rv32i implements Instruction {
         Register rs1 = p.getRegisterByIndex(rs1i);
         Register rs2 = p.getRegisterByIndex(rs2i);
 
-        switch (encoding & 0x7000) {
-            case 0x0000:
+        switch (encoding & 0xfe007000) {
+            case 0x00000000:
                 // add
                 rd.set(rs1.get() + rs2.get());
                 break;
+            case 0x40000000:
+                // sub
+                rd.set(rs1.get() - rs2.get());
+                break;
+            case 0x00001000:
+                // sll (shift logical left)
+                rd.set(rs1.get() << (rs2.get() & 0x1f));
+                break;
+            case 0x00002000:
+                // slt (signed less than)
+                rd.set(rs1.get() < rs2.get() ? 1 : 0);
+                break;
+            case 0x00003000:
+                // sltu (unsigned less than)
+                long v1 = ((long) rs1.get()) & 0xffffffffl;
+                long v2 = ((long) rs2.get()) & 0xffffffffl;
+                rd.set(v1 < v2 ? 1 : 0);
+                break;
+            case 0x00004000:
+                // xor
+                rd.set(rs1.get() ^ rs2.get());
+                break;
+            case 0x00005000:
+                // srl (right logical shift)
+                rd.set(rs1.get() >>> (rs2.get() & 0x1f));
+                break;
+            case 0x40005000:
+                // sra (arithmatic right shift)
+                rd.set(rs1.get() >> (rs2.get() & 0x1f));
+                break;
+            case 0x00006000:
+                // or
+                rd.set(rs1.get() | rs2.get());
+                break;
+            case 0x00007000:
+                // and
+                rd.set(rs1.get() & rs2.get());
+                break;
         }
+    }
+
+    private void applyB(Processor p, int encoding) {
+
     }
 
     private void lui(Processor p, int encoding) {
@@ -63,17 +106,20 @@ public class rv32i implements Instruction {
         // instruction is length 16
         switch (encoding & 0x7c) {
             case 0x10:
-                // addi, slli, slti, sltiu, xori, srli, srai, ori, andi
+                // I instructions
                 applyI(p, encoding);
                 break;
             case 0x30:
-                // add, sll, slt, sltu, xor, srl, sra, or, and
+                // R instructions
                 applyR(p, encoding);
                 break;
             case 0x34:
                 // lui
                 lui(p, encoding);
                 break;
+            case 0x60:
+                // B instructions
+                applyB(p, encoding);
             default:
                 System.out.printf("got %x\n", encoding & 0x7c);
         }

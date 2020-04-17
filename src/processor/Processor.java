@@ -24,11 +24,12 @@ public class Processor {
 
     public static Processor make_simple() {
         Processor p = new Processor(3);
-        // lui x2, 0x1
-        p.mem.set(0, 0x00100137);
+        // addi x1, x1, 0x1
+        p.mem.set(0, 0x00110113);
         // add x3, x1, x2
         p.mem.set(1, 0x002081b3);
-        p.mem.set(2, 0x002081b3);
+        // add x4, x2, x3
+        p.mem.set(2, 0x00310233);
         return p;
     }
 
