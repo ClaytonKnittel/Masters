@@ -7,6 +7,7 @@ L1:
     add t3, t1, t2
     mv t1, t2
     mv t2, t3
+    fence r,r
     addi t0, t0, -1
     bne t0, zero, L1
 

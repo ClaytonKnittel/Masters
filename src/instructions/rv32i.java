@@ -308,14 +308,159 @@ public class rv32i implements Instruction {
         return 0;
     }
 
+    // Load Instructions
+    public int applyL(Processor p, int encoding) {
+        int rdi  = (encoding >>  7) & 0x1f;
+        int rs1i = (encoding >> 15) & 0x1f;
+
+        Register rd  = p.getRegisterByIndex(rdi);
+        Register rs1 = p.getRegisterByIndex(rs1i);
+
+        Memory mem = p.getMem();
+
+        // 12-bit immmediate (sign-extended)
+        int imm12 = (encoding >> 20);
+
+        int dst = rs1.get() + imm12;
+
+        // memory fetched from memory is to be stored here
+        int res;
+        switch (encoding & 0x7000) {
+            case 0x0000:
+                // lb (load byte (signed))
+                System.out.printf("lb x%d, %d(x%d)\n", rdi, imm12, rs1i);
+                res = (int) mem.loadB(dst);
+                break;
+            case 0x1000:
+                // lh (load short (signed))
+                System.out.printf("lh x%d, %d(x%d)\n", rdi, imm12, rs1i);
+                res = (int) mem.loadH(dst);
+                break;
+            case 0x2000:
+                // lw (load word)
+                System.out.printf("lw x%d, %d(x%d)\n", rdi, imm12, rs1i);
+                res = mem.loadW(dst);
+                break;
+            case 0x4000:
+                // lbu (load byte (unsigned))
+                System.out.printf("lbu x%d, %d(x%d)\n", rdi, imm12, rs1i);
+                res = ((int) mem.loadB(dst)) & 0xff;
+                break;
+            case 0x5000:
+                // lhu (load short (unsigned))
+                System.out.printf("lhu x%d, %d(x%d)\n", rdi, imm12, rs1i);
+                res = ((int) mem.loadH(dst)) & 0xffff;
+                break;
+            default:
+                return ILLEGAL_INSTRUCTION;
+        }
+
+        rd.set(res);
+
+        // increment instruction pointer
+        p.setPCRelative(4);
+
+        return 0;
+    }
+
+    // Store Instructions
+    public int applyS(Processor p, int encoding) {
+        int rs1i = (encoding >> 15) & 0x1f;
+        int rs2i = (encoding >> 20) & 0x1f;
+
+        Register rs1 = p.getRegisterByIndex(rs1i);
+        Register rs2 = p.getRegisterByIndex(rs2i);
+
+        Memory mem = p.getMem();
+
+        int imm12 = (encoding >> 20) |
+                   ((encoding >> 7) & 0x7f);
+
+        int dst = rs1.get() + imm12;
+        int val = rs2.get();
+
+        switch (encoding & 0x7000) {
+            case 0x0000:
+                // sb (store byte)
+                System.out.printf("sb x%d, %d(x%d)\n", rs2i, imm12, rs1i);
+                mem.storeB(dst, (byte) val);
+                break;
+            case 0x1000:
+                // sh (store short)
+                System.out.printf("sh x%d, %d(x%d)\n", rs2i, imm12, rs1i);
+                mem.storeH(dst, (short) val);
+                break;
+            case 0x2000:
+                // sw (store word)
+                System.out.printf("sw x%d, %d(x%d)\n", rs2i, imm12, rs1i);
+                mem.storeW(dst, val);
+                break;
+            default:
+                return ILLEGAL_INSTRUCTION;
+        }
+
+        // increment instruction pointer
+        p.setPCRelative(4);
+
+        return 0;
+    }
+
+    private int applyF(Processor p, int encoding) {
+        final String rwio[] = {
+            "", "w", "r", "rw",
+            "o", "wo", "ro", "rwo",
+            "i", "wi", "ri", "rwi",
+            "io", "wio", "rio", "rwio"
+        };
+        
+        switch (encoding & 0x7000) {
+            case 0x0000:
+                // fence instruction
+                if ((encoding & 0xf00f8f80) != 0) {
+                    return ILLEGAL_INSTRUCTION;
+                }
+                int pred_bitmask = (encoding & 0x0f000000) >>> 24;
+                int succ_bitmask = (encoding & 0x00f00000) >>> 20;
+                System.out.printf("fence %s, %s\n", rwio[pred_bitmask],
+                        rwio[succ_bitmask]);
+                break;
+            case 0x1000:
+                // fence.i instruction
+                if ((encoding & 0xffff8f80) != 0) {
+                    return ILLEGAL_INSTRUCTION;
+                }
+                System.out.printf("fence.i\n");
+                break;
+            default:
+                return ILLEGAL_INSTRUCTION;
+        }
+
+        // increment instruction pointer
+        p.setPCRelative(4);
+
+        return 0;
+    }
+
 
     public void execute(Processor p, int encoding) {
         int res;
         // instruction is length 16
         switch (encoding & 0x7c) {
+            case 0x00:
+                // L instructions
+                res = applyL(p, encoding);
+                break;
+            case 0x0c:
+                // fence instructions
+                res = applyF(p, encoding);
+                break;
             case 0x10:
                 // I instructions
                 res = applyI(p, encoding);
+                break;
+            case 0x20:
+                // S instruction
+                res = applyS(p, encoding);
                 break;
             case 0x30:
                 // R instructions

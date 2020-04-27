@@ -51,27 +51,39 @@ public class Memory {
         return size;
     }
 
-    public int loadB(int addr) {
-        return m.get(addr) & 0xff;
+    private void addrCheck(int addr) {
+        if (addr < 0 || addr >= size()) {
+            System.out.printf("Illegal address %d\n", addr);
+        }
     }
 
-    public int loadH(int addr) {
+    public byte loadB(int addr) {
+        addrCheck(addr);
+        return m.get(addr);
+    }
+
+    public short loadH(int addr) {
+        addrCheck(addr);
         return m.getShort(addr);
     }
 
     public int loadW(int addr) {
+        addrCheck(addr);
         return m.getInt(addr);
     }
 
     public void storeB(int addr, byte val) {
+        addrCheck(addr);
         m.put(addr, val);
     }
 
     public void storeH(int addr, short val) {
+        addrCheck(addr);
         m.putShort(addr, val);
     }
 
     public void storeW(int addr, int val) {
+        addrCheck(addr);
         m.putInt(addr, val);
     }
 }

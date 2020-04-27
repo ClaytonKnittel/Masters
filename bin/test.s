@@ -12,6 +12,7 @@ Disassembly of section .text:
    8:	00730e33          	add	t3,t1,t2
    c:	00038313          	mv	t1,t2
   10:	000e0393          	mv	t2,t3
-  14:	fff28293          	addi	t0,t0,-1
-  18:	fe0298e3          	bnez	t0,8 <L1>
-  1c:	00208033          	add	zero,ra,sp
+  14:	0220000f          	fence	r,r
+  18:	fff28293          	addi	t0,t0,-1
+  1c:	fe0296e3          	bnez	t0,8 <L1>
+  20:	00208033          	add	zero,ra,sp

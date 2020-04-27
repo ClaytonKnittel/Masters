@@ -31,6 +31,10 @@ public class Processor {
         mem = new Memory(file_name);
     }
 
+    public Memory getMem() {
+        return mem;
+    }
+
     public Register getRegisterByIndex(int idx) {
         return xregs[idx];
     }
@@ -59,7 +63,7 @@ public class Processor {
     public void execute(int instruction) {}
 
     public boolean execute() {
-        if (pc.get() == mem.size()) {
+        if (pc.get() >= mem.size()) {
             return false;
         }
         int instr = mem.loadW(pc.get());
@@ -72,7 +76,7 @@ public class Processor {
             pc.set(pc.get() + 4);
         }
 
-        return true;
+        return pc.get() < mem.size();
     }
 
     public void printState() {
