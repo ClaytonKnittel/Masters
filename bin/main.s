@@ -1,7 +1,7 @@
 .section .text
 .global _start
 _start:
-    addi sp, sp, 0x400
+    addi sp, sp, 0x1
     add gp, ra, sp
     add tp, sp, gp
     mv ra, gp

@@ -9,10 +9,17 @@ import src.instructions.Instruction;
 import src.processor.*;
 
 
+// rename InstructionProcessor
 @Aspect
 public class rv32i implements Instruction {
 
-    private void applyI(Processor p, int encoding) {
+    private static final int ILLEGAL_INSTRUCTION = 0x1;
+    // thrown by jump instructions when destination address is not aligned
+    // by 4-bytes
+    private static final int MISALIGNED_INSTRUCTION_FETCH = 0x2;
+
+    // Integer Register-Immediate instructions
+    private int applyI(Processor p, int encoding) {
         int rdi  = (encoding >>  7) & 0x1f;
         int rs1i = (encoding >> 15) & 0x1f;
 
@@ -20,19 +27,67 @@ public class rv32i implements Instruction {
         Register rs1 = p.getRegisterByIndex(rs1i);
 
         // 12-bit immmediate
-        int imm = (encoding >> 20) & 0xfff;
+        // (sign extended)
+        int imm_s = (encoding >> 20);
+        int imm = imm_s & 0xfff;
         System.out.printf("%x\n", imm);
+
+        // shift amount (for shift instructions)
+        int shamt = imm & 0x1f;
+        // remaining bits after shamt bits for right shift instructions
+        // (if 0, then logical, if 16, then arithmatic)
+        int rem = (imm & 0xfe0) >> 5;
 
         System.out.println("Imm");
         switch (encoding & 0x7000) {
             case 0x0000:
-                // addi
-                rd.set(rs1.get() + imm);
+                // addi (add (sign-extended) immediate to rs1)
+                rd.set(rs1.get() + imm_s);
+                break;
+            case 0x1000:
+                // slli (logical left shift immediate)
+                rd.set(rs1.get() << shamt);
+                break;
+            case 0x2000:
+                // slti (set less than immediate, places value 1 in register
+                // rd if rs1 is less than imm (sign extended))
+                rd.set((rs1.get() < imm_s) ? 1 : 0);
+                break;
+            case 0x3000:
+                // sltiu (same as slti, but values are treated as unsigned)
+                rd.set((rs1.getu() < imm) ? 1 : 0);
+                break;
+            case 0x4000:
+                // xori (xor (sign-extended) immediate)
+                rd.set(rs1.get() ^ imm_s);
+                break;
+            case 0x5000:
+                if (rem == 0) {
+                    // srli (logical right shift immediate)
+                    rd.set(rs1.get() >>> shamt);
+                }
+                else if (rem == 16) {
+                    // srai (arithmatic right shift immediate)
+                    rd.set(rs1.get() >> shamt);
+                }
+                else {
+                    return ILLEGAL_INSTRUCTION;
+                }
+                break;
+            case 0x6000:
+                // ori (or (sign-extended) immediate)
+                rd.set(rs1.get() | imm_s);
+                break;
+            case 0x7000:
+                // andi (and (sign-extended) immediate)
+                rd.set(rs1.get() & imm_s);
                 break;
         }
+        return 0;
     }
 
-    private void applyR(Processor p, int encoding) {
+    // Integer Register-Register operations
+    private int applyR(Processor p, int encoding) {
         int rdi  = (encoding >>  7) & 0x1f;
         int rs1i = (encoding >> 15) & 0x1f;
         int rs2i = (encoding >> 20) & 0x1f;
@@ -60,9 +115,7 @@ public class rv32i implements Instruction {
                 break;
             case 0x00003000:
                 // sltu (unsigned less than)
-                long v1 = ((long) rs1.get()) & 0xffffffffl;
-                long v2 = ((long) rs2.get()) & 0xffffffffl;
-                rd.set(v1 < v2 ? 1 : 0);
+                rd.set(rs1.getu() < rs2.getu() ? 1 : 0);
                 break;
             case 0x00004000:
                 // xor
@@ -84,44 +137,180 @@ public class rv32i implements Instruction {
                 // and
                 rd.set(rs1.get() & rs2.get());
                 break;
+            default:
+                return ILLEGAL_INSTRUCTION;
         }
+
+        return 0;
     }
 
-    private void applyB(Processor p, int encoding) {
+    // Unconditional Jump (jump and link)
+    private int jal(Processor p, int encoding) {
+        int rdi  = (encoding >>  7) & 0x1f;
+        Register rd  = p.getRegisterByIndex(rdi);
 
+        // offset address in multiple of 2 bytes
+        int jimm20 = (encoding & 0x000ff000) |
+                    ((encoding & 0x00100000) >>> 10) |
+                    ((encoding & 0x7fe00000) >>> 21) |
+                    ((encoding & 0x80000000) >>  11);
+
+        if ((jimm20 & 0x1) != 0) {
+            return MISALIGNED_INSTRUCTION_FETCH;
+        }
+
+        // store instruction following jal in rd
+        rd.set(p.getPC() + 4);
+
+        // add 2 * jimm20 to pc
+        p.setPCRelative(jimm20 << 1);
+
+        return 0;
     }
 
-    private void lui(Processor p, int encoding) {
+    // Unconditional Jump (indirect jump)
+    private int jalr(Processor p, int encoding) {
+        int rdi  = (encoding >>  7) & 0x1f;
+        int rs1i = (encoding >> 15) & 0x1f;
+
+        Register rd  = p.getRegisterByIndex(rdi);
+        Register rs1 = p.getRegisterByIndex(rs1i);
+
+        if ((encoding & 0x7000) != 0) {
+            // jal requires these bits to be 0
+            return ILLEGAL_INSTRUCTION;
+        }
+
+        // 12-bit immmediate (sign-extended)
+        int imm12 = (encoding >> 20);
+
+        // destination address is obtained by adding sign-extended immediate
+        // to rs1 and setting the least-significant bit to 0
+        int dst = rs1.get() + imm12;
+        dst &= 0xfffffffe;
+
+        if ((dst & 0x3) != 0) {
+            return MISALIGNED_INSTRUCTION_FETCH;
+        }
+
+        // store instruction following jal in rd
+        rd.set(p.getPC() + 4);
+
+        // perform the jump
+        p.setPC(dst);
+
+        return 0;
+    }
+
+    // Conditional Branches
+    private int applyB(Processor p, int encoding) {
+        int rs1i = (encoding >> 15) & 0x1f;
+        int rs2i = (encoding >> 20) & 0x1f;
+
+        Register rs1 = p.getRegisterByIndex(rs1i);
+        Register rs2 = p.getRegisterByIndex(rs2i);
+
+        int bimm12hi = ((encoding & 0x00000080) <<   3) |
+                       ((encoding & 0x00000f00) >>>  8) |
+                       ((encoding & 0x7e000000) >>> 21) |
+                       ((encoding & 0x80000000) >>  20);
+
+        // bimm12hi is jump offset in multiple of 2 bytes
+        if ((bimm12hi & 0x1) != 0) {
+            return MISALIGNED_INSTRUCTION_FETCH;
+        }
+
+        boolean condition;
+
+        switch (encoding & 0x7000) {
+            case 0x0000:
+                // beq (branch if equal)
+                condition = (rs1.get() == rs2.get());
+                break;
+            case 0x1000:
+                // bne (branch if not equal)
+                condition = (rs1.get() != rs2.get());
+                break;
+            case 0x4000:
+                // blt (branch if less than (signed))
+                condition = (rs1.get() < rs2.get());
+                break;
+            case 0x5000:
+                // bge (branch if greater or equal (signed))
+                condition = (rs1.get() >= rs2.get());
+                break;
+            case 0x6000:
+                // bltu (branch if less than (unsigned))
+                condition = (rs1.getu() < rs2.getu());
+                break;
+            case 0x7000:
+                // bgeu (branch if greater or equal (unsigned))
+                condition = (rs1.getu() >= rs2.getu());
+                break;
+            default:
+                return ILLEGAL_INSTRUCTION;
+        }
+
+        if (condition) {
+            // jump by 2 * bimm12hi
+            p.setPCRelative(bimm12hi << 1);
+        }
+
+        return 0;
+    }
+
+    private int lui(Processor p, int encoding) {
         int rdi = (encoding >> 7) & 0x1f;
 
         Register rd = p.getRegisterByIndex(rdi);
 
         int imm = encoding & 0xfffff000;
 
+        // set highest 20 bits of rd
         rd.set((imm & 0xfffff000) | (rd.get() & 0x00000fff));
+
+        return 0;
     }
 
 
     public void execute(Processor p, int encoding) {
+        int res;
         // instruction is length 16
         switch (encoding & 0x7c) {
             case 0x10:
                 // I instructions
-                applyI(p, encoding);
+                res = applyI(p, encoding);
                 break;
             case 0x30:
                 // R instructions
-                applyR(p, encoding);
+                res = applyR(p, encoding);
                 break;
             case 0x34:
                 // lui
-                lui(p, encoding);
+                res = lui(p, encoding);
                 break;
             case 0x60:
                 // B instructions
-                applyB(p, encoding);
+                res = applyB(p, encoding);
+                break;
+            case 0x64:
+                // jalr
+                res = jalr(p, encoding);
+                break;
+            case 0x6c:
+                // jal
+                res = jal(p, encoding);
+                break;
             default:
-                System.out.printf("got %x\n", encoding & 0x7c);
+                res = ILLEGAL_INSTRUCTION;
+        }
+        switch (res) {
+            case ILLEGAL_INSTRUCTION:
+                System.out.printf("illegal instruction 0x%08x\n", encoding);
+                break;
+            case MISALIGNED_INSTRUCTION_FETCH:
+                System.out.printf("Misaligned instruction fetch\n");
+                break;
         }
     }
 

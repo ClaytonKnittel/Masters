@@ -12,29 +12,35 @@ public class Processor {
 
     protected Memory mem;
 
-    public Processor(int mem_size) {
+    public Processor(String file_name) {
         xregs = new Register[N_REGS];
-        for (int i = 0; i < xregs.length; i++) {
+
+        // first register is 0 register
+        xregs[0] = new ZeroRegister();
+        for (int i = 1; i < xregs.length; i++) {
             xregs[i] = new Register(0);
         }
         pc = new Register();
         pc.set(0);
-        mem = new Memory(mem_size);
-    }
-
-    public static Processor make_simple() {
-        Processor p = new Processor(3);
-        // addi x1, x1, 0x1
-        p.mem.set(0, 0x00110113);
-        // add x3, x1, x2
-        p.mem.set(1, 0x002081b3);
-        // add x4, x2, x3
-        p.mem.set(2, 0x00310233);
-        return p;
+        mem = new Memory(file_name);
     }
 
     public Register getRegisterByIndex(int idx) {
         return xregs[idx];
+    }
+
+    public int getPC() {
+        return pc.get();
+    }
+
+    // absolute jump
+    public void setPC(int val) {
+        pc.set(val);
+    }
+
+    // relative jump
+    public void setPCRelative(int offset) {
+        pc.set(pc.get() + offset);
     }
 
     public void execute(int instruction) {}
@@ -43,9 +49,9 @@ public class Processor {
         if (pc.get() == mem.size()) {
             return false;
         }
-        execute(mem.fetch(pc.get()));
-        pc.set(pc.get() + 1);
-        return true;
+        execute(mem.loadW(pc.get()));
+        pc.set(pc.get() + 4);
+        return pc.get() < mem.size();
     }
 
     public void printState() {

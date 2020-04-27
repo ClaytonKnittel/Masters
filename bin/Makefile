@@ -4,13 +4,15 @@ OBJD=riscv64-unknown-linux-gnu-objdump
 
 EXE=test
 
+CFLAGS=-march=rv64im
+
 all: test test.s dump
 
 test.s: test
 	$(OBJD) -d $^ > $@
 
 test: main.s
-	$(CC) -c $^ -o $(EXE)
+	$(CC) $(CFLAGS) -c $^ -o $(EXE)
 
 dump: dump.c
 	gcc $^ -o $@

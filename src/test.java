@@ -7,9 +7,20 @@ public class test {
     public static void execute(String line) {}
 
     public static void main(String args[]) {
-        Processor p = Processor.make_simple();
+        String bin;
+        if (args.length == 0) {
+            bin = "bin/test";
+        }
+        else {
+            bin = args[0];
+        }
+
+        Processor p = new Processor(bin);
         p.printState();
-        while (p.execute());
+        int i = 0;
+        while (p.execute()) {
+            System.out.println("on " + (i++));
+        }
         p.printState();
     }
 }

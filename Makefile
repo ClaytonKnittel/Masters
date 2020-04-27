@@ -24,9 +24,12 @@ $(shell mkdir -p $(CLASSPATH))
 
 SRC_PWD = $(shell pwd)
 
+STOP=$(error 0)
+
 
 .PHONY: all
 all: source
+	@echo "java -cp $(CLASSPATH):$(JARS) $(SDIR)/$(MAIN) \$$@" > run.sh
 
 source: $(SRC)
 	$(CC) $(CFLAGS) -d $(CLASSPATH) -cp .:$(CLASSPATH):$(JARS) $^

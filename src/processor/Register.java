@@ -26,5 +26,9 @@ public class Register implements Readable {
     public int get() {
         return state;
     }
+
+    public long getu() {
+        return ((long) state) & 0xffffffffL;
+    }
 }
 
