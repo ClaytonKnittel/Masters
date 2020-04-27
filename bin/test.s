@@ -5,12 +5,13 @@ test:     file format elf64-littleriscv
 Disassembly of section .text:
 
 0000000000000000 <_start>:
-   0:	00110113          	addi	sp,sp,1
-   4:	002081b3          	add	gp,ra,sp
-   8:	00310233          	add	tp,sp,gp
-   c:	00018093          	mv	ra,gp
-  10:	00020193          	mv	gp,tp
-  14:	004002ef          	jal	t0,18 <L1>
+   0:	01e28293          	addi	t0,t0,30
+   4:	00138393          	addi	t2,t2,1
 
-0000000000000018 <L1>:
-  18:	00208033          	add	zero,ra,sp
+0000000000000008 <L1>:
+   8:	00730e33          	add	t3,t1,t2
+   c:	00038313          	mv	t1,t2
+  10:	000e0393          	mv	t2,t3
+  14:	fff28293          	addi	t0,t0,-1
+  18:	fe0298e3          	bnez	t0,8 <L1>
+  1c:	00208033          	add	zero,ra,sp

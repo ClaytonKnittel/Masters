@@ -30,7 +30,6 @@ public class rv32i implements Instruction {
         // (sign extended)
         int imm_s = (encoding >> 20);
         int imm = imm_s & 0xfff;
-        System.out.printf("%x\n", imm);
 
         // shift amount (for shift instructions)
         int shamt = imm & 0x1f;
@@ -38,37 +37,43 @@ public class rv32i implements Instruction {
         // (if 0, then logical, if 16, then arithmatic)
         int rem = (imm & 0xfe0) >> 5;
 
-        System.out.println("Imm");
         switch (encoding & 0x7000) {
             case 0x0000:
                 // addi (add (sign-extended) immediate to rs1)
                 rd.set(rs1.get() + imm_s);
+                System.out.printf("addi x%d, x%d, %d\n", rdi, rs1i, imm_s);
                 break;
             case 0x1000:
                 // slli (logical left shift immediate)
                 rd.set(rs1.get() << shamt);
+                System.out.printf("slli x%d, x%d, %d\n", rdi, rs1i, imm_s);
                 break;
             case 0x2000:
                 // slti (set less than immediate, places value 1 in register
                 // rd if rs1 is less than imm (sign extended))
                 rd.set((rs1.get() < imm_s) ? 1 : 0);
+                System.out.printf("slti x%d, x%d, %d\n", rdi, rs1i, imm_s);
                 break;
             case 0x3000:
                 // sltiu (same as slti, but values are treated as unsigned)
                 rd.set((rs1.getu() < imm) ? 1 : 0);
+                System.out.printf("sltiu x%d, x%d, %d\n", rdi, rs1i, imm_s);
                 break;
             case 0x4000:
                 // xori (xor (sign-extended) immediate)
                 rd.set(rs1.get() ^ imm_s);
+                System.out.printf("xori x%d, x%d, %d\n", rdi, rs1i, imm_s);
                 break;
             case 0x5000:
                 if (rem == 0) {
                     // srli (logical right shift immediate)
                     rd.set(rs1.get() >>> shamt);
+                    System.out.printf("srli x%d, x%d, %d\n", rdi, rs1i, shamt);
                 }
                 else if (rem == 16) {
                     // srai (arithmatic right shift immediate)
                     rd.set(rs1.get() >> shamt);
+                    System.out.printf("srai x%d, x%d, %d\n", rdi, rs1i, shamt);
                 }
                 else {
                     return ILLEGAL_INSTRUCTION;
@@ -77,12 +82,18 @@ public class rv32i implements Instruction {
             case 0x6000:
                 // ori (or (sign-extended) immediate)
                 rd.set(rs1.get() | imm_s);
+                System.out.printf("ori x%d, x%d, %d\n", rdi, rs1i, imm_s);
                 break;
             case 0x7000:
                 // andi (and (sign-extended) immediate)
                 rd.set(rs1.get() & imm_s);
+                System.out.printf("andi x%d, x%d, %d\n", rdi, rs1i, imm_s);
                 break;
         }
+
+        // increment instruction pointer
+        p.setPCRelative(4);
+
         return 0;
     }
 
@@ -100,46 +111,59 @@ public class rv32i implements Instruction {
             case 0x00000000:
                 // add
                 rd.set(rs1.get() + rs2.get());
+                System.out.printf("add x%d, x%d, x%d\n", rdi, rs1i, rs2i);
                 break;
             case 0x40000000:
                 // sub
                 rd.set(rs1.get() - rs2.get());
+                System.out.printf("sub x%d, x%d, x%d\n", rdi, rs1i, rs2i);
                 break;
             case 0x00001000:
                 // sll (shift logical left)
                 rd.set(rs1.get() << (rs2.get() & 0x1f));
+                System.out.printf("sll x%d, x%d, x%d\n", rdi, rs1i, rs2i);
                 break;
             case 0x00002000:
                 // slt (signed less than)
                 rd.set(rs1.get() < rs2.get() ? 1 : 0);
+                System.out.printf("slt x%d, x%d, x%d\n", rdi, rs1i, rs2i);
                 break;
             case 0x00003000:
                 // sltu (unsigned less than)
                 rd.set(rs1.getu() < rs2.getu() ? 1 : 0);
+                System.out.printf("sltu x%d, x%d, x%d\n", rdi, rs1i, rs2i);
                 break;
             case 0x00004000:
                 // xor
                 rd.set(rs1.get() ^ rs2.get());
+                System.out.printf("xor x%d, x%d, x%d\n", rdi, rs1i, rs2i);
                 break;
             case 0x00005000:
                 // srl (right logical shift)
                 rd.set(rs1.get() >>> (rs2.get() & 0x1f));
+                System.out.printf("srl x%d, x%d, x%d\n", rdi, rs1i, rs2i);
                 break;
             case 0x40005000:
                 // sra (arithmatic right shift)
                 rd.set(rs1.get() >> (rs2.get() & 0x1f));
+                System.out.printf("sra x%d, x%d, x%d\n", rdi, rs1i, rs2i);
                 break;
             case 0x00006000:
                 // or
                 rd.set(rs1.get() | rs2.get());
+                System.out.printf("or x%d, x%d, x%d\n", rdi, rs1i, rs2i);
                 break;
             case 0x00007000:
                 // and
                 rd.set(rs1.get() & rs2.get());
+                System.out.printf("and x%d, x%d, x%d\n", rdi, rs1i, rs2i);
                 break;
             default:
                 return ILLEGAL_INSTRUCTION;
         }
+
+        // increment instruction pointer
+        p.setPCRelative(4);
 
         return 0;
     }
@@ -158,6 +182,7 @@ public class rv32i implements Instruction {
         if ((jimm20 & 0x1) != 0) {
             return MISALIGNED_INSTRUCTION_FETCH;
         }
+        System.out.printf("jal x%d, %d\n", rdi, jimm20 << 1);
 
         // store instruction following jal in rd
         rd.set(p.getPC() + 4);
@@ -193,6 +218,8 @@ public class rv32i implements Instruction {
             return MISALIGNED_INSTRUCTION_FETCH;
         }
 
+        System.out.printf("jalr x%d, x%d, %d\n", rdi, rs1i, imm12);
+
         // store instruction following jal in rd
         rd.set(p.getPC() + 4);
 
@@ -226,35 +253,39 @@ public class rv32i implements Instruction {
             case 0x0000:
                 // beq (branch if equal)
                 condition = (rs1.get() == rs2.get());
+                System.out.printf("beq x%d, x%d, %d\n", rs1i, rs2i, bimm12hi << 1);
                 break;
             case 0x1000:
                 // bne (branch if not equal)
                 condition = (rs1.get() != rs2.get());
+                System.out.printf("bne x%d, x%d, %d\n", rs1i, rs2i, bimm12hi << 1);
                 break;
             case 0x4000:
                 // blt (branch if less than (signed))
                 condition = (rs1.get() < rs2.get());
+                System.out.printf("blt x%d, x%d, %d\n", rs1i, rs2i, bimm12hi << 1);
                 break;
             case 0x5000:
                 // bge (branch if greater or equal (signed))
                 condition = (rs1.get() >= rs2.get());
+                System.out.printf("bge x%d, x%d, %d\n", rs1i, rs2i, bimm12hi << 1);
                 break;
             case 0x6000:
                 // bltu (branch if less than (unsigned))
                 condition = (rs1.getu() < rs2.getu());
+                System.out.printf("bltu x%d, x%d, %d\n", rs1i, rs2i, bimm12hi << 1);
                 break;
             case 0x7000:
                 // bgeu (branch if greater or equal (unsigned))
                 condition = (rs1.getu() >= rs2.getu());
+                System.out.printf("bgeu x%d, x%d, %d\n", rs1i, rs2i, bimm12hi << 1);
                 break;
             default:
                 return ILLEGAL_INSTRUCTION;
         }
 
-        if (condition) {
-            // jump by 2 * bimm12hi
-            p.setPCRelative(bimm12hi << 1);
-        }
+        // jump by 2 * bimm12hi if condition succeeded, else go to next instruction
+        p.setPCRelative(condition ? (bimm12hi << 1) : 4);
 
         return 0;
     }
@@ -266,8 +297,13 @@ public class rv32i implements Instruction {
 
         int imm = encoding & 0xfffff000;
 
+        System.out.printf("lui x%d, %d\n", rd, imm);
+
         // set highest 20 bits of rd
         rd.set((imm & 0xfffff000) | (rd.get() & 0x00000fff));
+
+        // increment instruction pointer
+        p.setPCRelative(4);
 
         return 0;
     }
@@ -311,6 +347,8 @@ public class rv32i implements Instruction {
             case MISALIGNED_INSTRUCTION_FETCH:
                 System.out.printf("Misaligned instruction fetch\n");
                 break;
+            default:
+                p.foundInstructionMatch();
         }
     }
 
@@ -323,6 +361,9 @@ public class rv32i implements Instruction {
         if ((encoding & 0x3) == 0x3 &&
                 (encoding & 0x1c) != 0x1c) {
             execute(p, encoding);
+        }
+        else {
+            System.out.printf("Not 0x%08x\n", encoding);
         }
     }
 }

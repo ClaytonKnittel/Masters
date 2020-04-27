@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import java.nio.ByteBuffer;
+import static java.nio.ByteOrder.LITTLE_ENDIAN;
 
 public class Memory {
 
@@ -43,6 +44,7 @@ public class Memory {
         }
 
         m = ByteBuffer.wrap(data);
+        m.order(LITTLE_ENDIAN);
     }
 
     public long size() {
@@ -54,11 +56,11 @@ public class Memory {
     }
 
     public int loadH(int addr) {
-        return m.getShort(addr >> 1);
+        return m.getShort(addr);
     }
 
     public int loadW(int addr) {
-        return m.getInt(addr >> 2);
+        return m.getInt(addr);
     }
 
     public void storeB(int addr, byte val) {
@@ -66,11 +68,11 @@ public class Memory {
     }
 
     public void storeH(int addr, short val) {
-        m.putShort(addr >> 1, val);
+        m.putShort(addr, val);
     }
 
     public void storeW(int addr, int val) {
-        m.putInt(addr >> 2, val);
+        m.putInt(addr, val);
     }
 }
 

@@ -17,10 +17,7 @@ public class test {
 
         Processor p = new Processor(bin);
         p.printState();
-        int i = 0;
-        while (p.execute()) {
-            System.out.println("on " + (i++));
-        }
+        while (p.execute());
         p.printState();
     }
 }

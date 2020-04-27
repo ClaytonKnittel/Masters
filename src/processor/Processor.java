@@ -10,6 +10,9 @@ public class Processor {
     protected Register xregs[];
     protected Register pc;
 
+    // flag to be set when an instruction match has been found in a cycle
+    protected boolean foundInstruction;
+
     protected Memory mem;
 
     public Processor(String file_name) {
@@ -22,6 +25,9 @@ public class Processor {
         }
         pc = new Register();
         pc.set(0);
+
+        foundInstruction = false;
+
         mem = new Memory(file_name);
     }
 
@@ -43,15 +49,30 @@ public class Processor {
         pc.set(pc.get() + offset);
     }
 
+    /**
+     * to be called whenever an intruction has matched to an opcode
+     */
+    public void foundInstructionMatch() {
+        foundInstruction = true;
+    }
+
     public void execute(int instruction) {}
 
     public boolean execute() {
         if (pc.get() == mem.size()) {
             return false;
         }
-        execute(mem.loadW(pc.get()));
-        pc.set(pc.get() + 4);
-        return pc.get() < mem.size();
+        int instr = mem.loadW(pc.get());
+
+        foundInstruction = false;
+        execute(instr);
+
+        if (!foundInstruction) {
+            // TODO no instruction matched (for now just ignore)
+            pc.set(pc.get() + 4);
+        }
+
+        return true;
     }
 
     public void printState() {
